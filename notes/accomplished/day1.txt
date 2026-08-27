@@ -1,0 +1,94 @@
+Day 1
+
+Install Project Backend Dependencies
+
+* npm init -y
+Creates a package.json file for your Node.js project.
+
+* npm i express mongoose dotenv cors helmet cookie-parser bcrypt jsonwebtoken
+Install the main backend dependencies
+express — Web framework for building APIs and servers.
+mongoose — Makes it easier to work with MongoDB from Node.js.
+dotenv — Loads secrets/configuration from a .env file.
+cors — Controls which websites/domains can make requests to your API.
+helmet — Adds various HTTP security headers.
+cookie-parser — Reads cookies sent by the browser.
+bcrypt — Hashes passwords securely before storing them.
+jsonwebtoken — Creates and verifies JWT authentication tokens.
+`Express + MongoDB + configuration + security + authentication`
+
+* npm i socket.io @socket.io/redis-adapter ioredis
+Install Socket.IO and Redis support
+ for real-time communication.
+socket.io
+Allows the server and clients to communicate in real time.
+
+ioredis
+A Node.js client for Redis.
+
+Redis is an extremely fast in-memory data store.
+
+@socket.io/redis-adapter
+Allows multiple Socket.IO servers to communicate through Redis.
+
+
+* npm i zod express-rate-limit rate-limit-redis
+Install validation and rate limiting
+zod
+Used for validating incoming data.
+
+express-rate-limit
+Limits how many requests a user/IP can make.
+
+rate-limit-redis
+Allows the rate-limit information to be stored in Redis
+
+
+* npm i bullmq
+BullMQ is for background jobs/queues.
+
+* npm i -D nodemon jest supertest socket.io-client
+Install development/testing dependencies
+nodemon
+Automatically restarts your Node server when you change your code.
+
+jest
+Testing framework.
+
+supertest
+Used to test HTTP APIs.
+
+socket.io-client
+The client-side Socket.IO library.
+
+Initial Project Backend Stack:
+                  Your Backend
+                       │
+                 ┌─────┴─────┐
+                 │  Express  │
+                 └─────┬─────┘
+                       │
+        ┌──────────────┼──────────────┐
+        ↓              ↓              ↓
+     MongoDB         Redis         Socket.IO
+    (Mongoose)    (ioredis)       (real-time)
+                       │
+                 ┌─────┴─────┐
+                 ↓           ↓
+             BullMQ      Rate Limit
+            (queues)       storage
+
+Project Components:
+dotenv → environment variables
+helmet → security headers
+cors → cross-origin control
+cookie-parser → cookies
+bcrypt → password hashing
+jsonwebtoken → authentication
+zod → input validation
+
+For Development:
+nodemon → automatic restarts
+Jest → testing
+Supertest → API testing
+Socket.IO client → real-time testing

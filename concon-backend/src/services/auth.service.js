@@ -12,5 +12,14 @@ async function registerUser({ username, email, password }) {
 async function validateCredentials(email, password) {
     const user = await User.findOne({ email });
     if (!user) return null;
-    const valid = await bcrypt.compare(password)
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    return valid ? user : null;
 }
+
+function generateTokens(userId) {
+    const accessToken = jwt.sign({ sub: userId }, jwtSecret, { expiresIn: "15m" });
+    const refreshToken = jwt.sign({ sub: userId }, jwtRefreshSecret, { expiresIn: "30d" });
+    return { accessToken, refreshToken };
+}
+
+module.exports = { registerUser, validateCredentials, generateTokens };

@@ -4,6 +4,8 @@ const { createClient } = require("redis");
 const socketAuth = require("./socketAuth.middleware");
 const registerMessageHandlers = require("./handlers/message.handler");
 const registerPresenceHandlers = require("./handlers/presence.handler");
+const registerTypingHandlers = require("./handlers/typing.handler");
+
 
 async function initSocket(httpServer) {
   const io = new Server(httpServer, { cors: { origin: "*" } });
@@ -18,6 +20,7 @@ async function initSocket(httpServer) {
   io.on("connection", (socket) => {
     registerPresenceHandlers(io, socket);
     registerMessageHandlers(io, socket);
+    registerTypingHandlers(io, socket);
 
     socket.on("disconnect", () => {
       // update presence in redis, notify contacts

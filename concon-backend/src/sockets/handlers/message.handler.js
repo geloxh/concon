@@ -1,4 +1,5 @@
 const Message = require("../../models/Message");
+const { queuePushNotification } = require("../../services/notification.service");
 
 module.exports = function registerMessageHandlers(io, socket) {
   socket.on("joinConversation", (conversationId) => {

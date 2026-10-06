@@ -31,3 +31,29 @@ frontend/
 ├── package.json                    # workspace root
 └── turbo.json (or lerna/nx config) # monorepo tooling
 ```
+
+### web project structure (frontend)
+```
+web/
+├── src/
+│   ├── pages/
+│   │   ├── LoginPage.jsx
+│   │   ├── RegisterPage.jsx
+│   │   └── ChatPage.jsx
+│   ├── components/
+│   │   ├── chat/
+│   │   │   ├── ConversationList.jsx
+│   │   │   ├── MessageList.jsx
+│   │   │   ├── MessageBubble.jsx
+│   │   │   ├── ChatInput.jsx
+│   │   │   └── TypingIndicator.jsx
+│   │   └── common/
+│   │       ├── Avatar.jsx
+│   │       └── Spinner.jsx
+│   ├── storage/
+│   │   └── webStorage.js       # localStorage implementation
+│   ├── App.jsx
+│   └── main.jsx
+├── vite.config.js
+└── package.json
+```

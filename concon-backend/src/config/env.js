@@ -9,4 +9,5 @@ module.exports = {
     jwtSecret: process.env.JWT_SECRET,
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
     redisUrl: process.env.REDIS_URL,
+    clientOrigins: (process.env.CLIENT_ORIGINS || "http://localhost:5173").split(","),
 };

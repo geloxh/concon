@@ -3,7 +3,7 @@ const { Schema, model } = require("mongoose");
 const refreshTokenSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    token: { type: String, required: true, unique: true },
+    tokenMash: { type: String, required: true, unique: true }, // sha256, never the raw token
     userAgent: String,
     revoked: { type: Boolean, default: false },
     expiresAt: { type: Date, required: true },

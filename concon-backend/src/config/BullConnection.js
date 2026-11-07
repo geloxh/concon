@@ -1,4 +1,9 @@
 const IORedis = require("ioredis");
-const { redisUrl } = require(".env");
+const { redisUrl } = require("./env");
 
-module.exports = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+// BullMQ needs its own ioredis connection; workers require maxRetriesPerRequest: null
+function createBullConnection() {
+    return new IORedis(redisUrl, { maxRetriesPerRequest: null });
+}
+
+module.exports = { createBullConnection };

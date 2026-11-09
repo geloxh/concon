@@ -3,7 +3,7 @@ const logger = require("../utils/logger");
 
 const redisClient = createClient({ url: process.env.REDIS_URL });
 
-redisClient.on("error", (err) => logger.error("Redis error", { err }));
+redisClient.on("error", (err) => logger.error("Redis error", { err: err.message }));
 redisClient.on("connect", () => logger.info("Redis connected"));
 
 async function connectRedis() {

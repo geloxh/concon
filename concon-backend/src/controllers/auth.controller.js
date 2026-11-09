@@ -1,26 +1,56 @@
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const RefreshToken = require("../models/RefreshToken");
 const catchAsync = require("../utils/catchAsync");
 const ApiError = require("../utils/apiError");
 const { success } = require("../utils/apiResponse");
 const {
+  REFRESH_TOKEN_TTL_MS,
   registerUser,
   validateCredentials,
-  generateTokens,
+  createSession,
+  rotateRefreshToken,
+  revokeRefreshToken,
 } = require("../services/auth.service");
+
+const cookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  path: "/api/v1/auth", // the browser only sends this cookies to the auth routes
+});
+
+function setRefreshCookie(res, token) {
+  res.cookie("refreshToken", token, { ...cookieOptions(), maxAge: REFRESH_TOKEN_TTL_MS });
+}
+
+// Mobile and desktop apps have no cookie jar to rely on, so they get the refresh token in the body.
+// They identify themselves with the header `x-client-platform: mobile | desktop`.
+const isNativeClient = (req) => [ "mobile", "desktop" ].includes(req.headers["x-client-platform"]);
+
+function sendSession(req, res, statusCode, user, { accessToken, refreshToken }) {
+  setRefreshCookie(res, refreshToken);
+  return success(res, statusCode, {
+    ...(user && { user: { id: user._id, username: user.username, email: user.email } }),
+    accessToken,
+    ...(isNativeClient(req) && { refreshToken }),
+  });
+}
+
+exports.register = catchAsync(async (req, res) => {
+  const { username, email, password } = req.body;
+
+  const existing = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
+  // Continue here...
+})
+
+
+
+
+
+
 const { jwtRefreshSecret } = require("../config/env");
 
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-function setRefreshCookie(res, token) {
-  res.cookie("refreshToken", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: REFRESH_TOKEN_TTL_MS,
-  });
-}
 
 exports.register = catchAsync(async (req, res) => {
   const { username, email, password } = req.body;

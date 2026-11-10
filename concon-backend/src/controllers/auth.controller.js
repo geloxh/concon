@@ -39,8 +39,41 @@ exports.register = catchAsync(async (req, res) => {
   const { username, email, password } = req.body;
 
   const existing = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
-  // Continue here...
-})
+  if (existing) throw new ApiError(400, "Email or username already in use. Please try another email.");
+
+  const user = await registerUser({ username, email, password });
+  const tokens = await createSession(user._id, req.headers["user-agent"]);
+
+  returnsendSession(req, res, 201, user, tokens);
+});
+
+exports.login = catchAsync(async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await validateCredentials(email, password);
+  if (!user) throw new ApiError(401, "Invalid email or password");
+
+  const tokens = await createSession(user._id, req.headers["user-agent"]);
+
+  return sendSession(req, res, 200, user, tokens);
+});
+
+exports.refresh = catchAsync(async (req, res) => {
+  const token = req.cookies?.refreshToken || req.body?.refreshToken;
+  if (!token) throw new ApiError(401, "Refresh token missing.");
+
+  const tokens = await rotateRefreshToken(token, req.headers["user-agent"]);
+
+  return sendSession(req, res, 200, null, tokens);
+});
+
+exports.logouy = catchAsync(async (req, res) => {
+  const token = req.cookies?.refreshToken || req.body?.refreshToken;
+  if (token) await revokeRefreshToken(token);
+
+  res.clearCookie("refreshToken", cookieOptions());
+  return success(req, 200., { message: "Logged out." });
+});
 
 
 

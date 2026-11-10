@@ -1,18 +1,35 @@
 const Conversation = require("../models/Conversation");
+const Message = require("../models/Mesage");
+const User = require("../models/User");
 const catchAsync = require("../utils/catchAsync");
 const ApiError = require("../utils/apiError");
 const { success } = require("../utils/apiResponse");
+const {
+  joinUsersToConversation,
+  removeUserFromConversation,
+  emitToUsers,
+  emitToConversation,
+} = require("../utils/realtime");
+
+const POPULATE_FIELDS = "username avatar status";
 
 exports.createConversation = catchAsync(async (req, res) => {
   const { type, participants, groupName } = req.body;
-  const allParticipants = [...new Set([...participants, req.userId.toString()])];
+  const allParticipants = [...new Set([...participants, String(req.userId)])];
+
+  if (type === "direct" && allParticipants.length !==2) {
+    throw new ApiError(400, "Direct conversations must have exactly 2 participants");
+  }
+
+  if (type === "group" && allParticipants.length < 2) {
+    throw new ApiError(400, "Group conversations need at least 2 participants");
+  }
+
+  const found = await User.countDocuments({ _id: { $in: allParticipants } });
+  if (found !== allParticipants.length) throw new ApiError(404, "One or more users not found.");
 
   if (type === "direct") {
-    if (allParticipants.length !== 2) {
-      throw new ApiError(400, "Direct conversations must have exactly 2 participants");
-    }
-
-    // Reuse existing direct conversation if one already exists between these two users
+    // Reuse the existing direct conversation between these two users
     const existing = await Conversation.findOne({
       type: "direct",
       participants: { $all: allParticipants, $size: 2 },
@@ -27,6 +44,11 @@ exports.createConversation = catchAsync(async (req, res) => {
     admin: type === "group" ? req.userId : undefined,
   });
 
+  // Put everyone's live sockets into the new room and tell their clients about it
+  const io = req.app.get("io");
+  joinUsersToConversation(io, allParticipants, conversation._id);
+  emitToUsers(io, allParticipants, "conversationCreated", { conversation });
+  
   return success(res, 201, { conversation });
 });
 

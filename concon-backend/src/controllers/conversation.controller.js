@@ -48,13 +48,13 @@ exports.createConversation = catchAsync(async (req, res) => {
   const io = req.app.get("io");
   joinUsersToConversation(io, allParticipants, conversation._id);
   emitToUsers(io, allParticipants, "conversationCreated", { conversation });
-  
+
   return success(res, 201, { conversation });
 });
 
 exports.getMyConversations = catchAsync(async (req, res) => {
   const conversations = await Conversation.find({ participants: req.userId })
-    .populate("participants", "username avatar status")
+    .populate("participants", POPULATE_FIELDS)
     .sort({ updatedAt: -1 });
 
   return success(res, 200, { conversations });
@@ -78,9 +78,17 @@ exports.addParticipant = catchAsync(async (req, res) => {
   if (conversation.type !== "group") throw new ApiError(400, "Can only add members to group conversations");
   if (String(conversation.admin) !== String(req.userId)) throw new ApiError(403, "Only the admin can add members");
 
-  if (!conversation.participants.includes(userId)) {
+  if (!(await User.exists({ _id: userid }))) throw new ApiError(404, "User not found.");
+ 
+  const alreadyIn = conversation.participants.some((p) => String(p) === userId);
+  if (!alreadyIn) {
     conversation.participants.push(userId);
     await conversation.save();
+
+    const io = req.app.get("io");
+    joinUsersToConversation(io, [userId], conversation._id);
+    emitToUsers(io, [userId], "conversationCreated", { conversation });
+    emitToConversation(io, conversation._id, "participantAdded", { conversationId: conversation._id, userId });
   }
 
   return success(res, 200, { conversation });

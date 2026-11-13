@@ -29,11 +29,22 @@ exports.sendMessage = catchAsync(async (req, res) => {
     });
 
     // Same real-time event the socket path emits, so REST-sent messages show up live too
-    emitToConversation(req.app.get("io"), conversationId)
+    emitToConversation(req.app.get("io"), conversationId, "newMessage", message);
 
-    await conversationId.findByIdAndUpdate(conversationId, {
-        lastMessage: { text: content, sender: req.userId, createdAt: new Date() },
+    return success(res, 201, { message });
+});
+
+exports.markRead = catchAsync(async (req, res) => {
+    const { conversationId } = req.params;
+    const { messageId } = req.body;
+
+    await messageService.markRead({ conversationId, userId: req.userId, messageId });
+    emitToConversation(req.app.get("io"), conversationId, "messageStatusUpdate", {
+        conversationId,
+        messageId,
+        userId: String(req.userId),
+        status: "read",
     });
 
-    res.status(201).json({ data: message });
-});
+    return success(res, 200, { message: "Marked as read" });
+})

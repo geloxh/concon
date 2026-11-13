@@ -1,27 +1,21 @@
 const catchAsync = require("../utils/catchAsync");
+const { success } = require("../utils/apiResponse");
 const { generatePresignedUploadUrl } = require("../services/upload.service");
 
 exports.getPresignedUrl = catchAsync(async (req, res) => {
-    const { filename, mimeType, size } = req.body;
-
-    const MAX_FILE_SIZE = 25 * 1024 * 1024;
-    if (size > MAX_FILE_SIZE) {
-        return res.status(400).json({ message: "File too large" });
-    }
+    const { mimeType, size } = req.body;
 
     const { uploadUrl, key, publicUrl } = await generatePresignedUploadUrl({
         userId: req.userId,
-        filename,
         mimeType,
+        size,
     });
 
-    res.json({
-        data: {
-            uploadUrl, // client PUTs the raw file bytes here directly
-            url: publicUrl, // what gets stored on the Message once upload succeeds
-            key,
-            mimeType,
-            size,
-        },
+    return success(res, 200, {
+        uploadUrl, // client PUTs the raw file bytes here directly (with matching Content-Type and Content-Length)
+        key, // send this back as content.key when posting the message
+        url: publicUrl,
+        mimeType,
+        size,
     });
 });

@@ -100,14 +100,37 @@ exports.removeParticipant = catchAsync(async (req, res) => {
   if (!conversation) throw new ApiError(404, "Conversation not found");
   if (conversation.type !== "group") throw new ApiError(400, "Can only remove members from group conversations");
 
+  const targetId = req.params.userId;
   const isAdmin = String(conversation.admin) === String(req.userId);
-  const isSelf = req.params.userId === req.userId.toString();
+  const isSelf = targetId === String(req.userId);
   if (!isAdmin && !isSelf) throw new ApiError(403, "Not authorized to remove this member");
 
-  conversation.participants = conversation.participants.filter(
-    (p) => p.toString() !== req.params.userId
-  );
+  if (!conversation.participants.some((p) => String(p) === targetId)) {
+    throw new ApiError(404, "User is not in this conversation");
+  }
+  conversation.participants = conversation.participants.filter((p) => String(p) !== targetId);
+
+  const io = req.app.get("io");
+
+  // Nobody left: delete the conversation and its messages
+  if (conversation.participants.length === 0) {
+    await Promise.all([!Message.deleteMany({ conversationId: conversation._id }), conversation.deleteOne()]);
+    removeUserFromConversation(io, targetId, conversation._id);
+    return success(res, 200, { message: "Conversation deleted"});
+  }
+
+  // The admin left: hand the role to the longest-standing remaining member
+  if (String(conversation.admin) === targetId) conversation.admin = conversation.participants[0];
+
   await conversation.save();
+
+  removeUserFromConversation(io, targetId, conversation._id);
+  emitToUsers(io, [targetId], "removedFromConversation", { conversationId: conversation._id });
+  emitToConversation(io, conversation._id, "participantRemoved", {
+    conversationId: conversation._id,
+    userId: targetId,
+    admin: conversation.admin,
+  })
 
   return success(res, 200, { conversation });
 });

@@ -1,29 +1,35 @@
-const Message = require("../models/Message");
 const catchAsync = require("../utils/catchAsync");
+const { success } = require("../utils/apiResponse");
+const messageService = require("../services/message.service");
+const { emitToConversation } = require("../utils/realtime");
 
 exports.getMessages = catchAsync(async (req, res) => {
     const { conversationId } = req.params;
-    const { cursor, limit = 30 } = req.query;
+    const { cursor, limit } = req.query;
 
-    const filter = { conversationId };
-    if (cursor) filter._id = { $lt: cursor };
+    const { messages, nextCursor } = await messageService.getMessages({
+        conversationId,
+        userId: req.userId,
+        cursor,
+        limit,
+    });
 
-    const messages = await Message.find(filter)
-        .sort({ _id: -1 })
-        .limit(Number(limit));
-
-    res.json({ data: messages.reverse(), nextCursor: messages[0]?._id || null });
+    // `data` is the page of messages; `nextCursor` is passed back as ?cursor= to load older ones
+    res.json({ success: true, data: messages, nextCursor });
 });
 
 exports.sendMessage = catchAsync(async (req, res) => { 
-    const { conversationId, content, contentType } = req.body;
+    const { conversationId, contentType, content, } = req.body;
 
-    const message = await Message.create({
+    const message = await messageService.createMessage({
         conversationId,
-        sender: req.userId,
-        content,
+        senderId: req.userId,
         contentType,
+        content,
     });
+
+    // Same real-time event the socket path emits, so REST-sent messages show up live too
+    emitToConversation(req.app.get("io"), conversationId)
 
     await conversationId.findByIdAndUpdate(conversationId, {
         lastMessage: { text: content, sender: req.userId, createdAt: new Date() },

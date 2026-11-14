@@ -1,24 +1,29 @@
 const { Worker } = require("bullmq");
-const { redisUrl } = require("../config/env");
+const { createBullConnection } = require("../config/bullqm");
 const logger = require("../utils/logger");
 
-// Placeholder push logic — swap in FCM (mobile) / web push here
+// TODO: plug in a real provider. Needs a device-token store (e.g. a DeviceToken model with
+// POST /users/me/devices) and FCM / APNs / web-push credentials.
 async function sendPushNotification({ userId, title, body }) {
   logger.info(`[push] -> user ${userId}: ${title} - ${body}`);
-  // e.g. await admin.messaging().send({ token: deviceToken, notification: { title, body } });
+  // e.g. await admin.messaging().sendEachForMulticast({ tokens: notification: { title, body } });
 }
 
-const notificationWorker = new Worker(
-  "notifications",
-  async (job) => {
-    const { userId, title, body } = job.data;
-    await sendPushNotification({ userId, title, body });
-  },
-  { connection: { url: redisUrl } }
-);
+function startNotificationWorker() {
+  const worker = new Worker(
+    "notifications",
+    async (job) => {
+      const { userId, title, body } = job.data;
+      await sendPushNotification({ userId, title, body });
+    },
+    { connection: createBullConnection(), concurrency: 10 }
+  );
 
-notificationWorker.on("failed", (job, err) => {
-  logger.error(`Notification job ${job.id} failed`, { err: err.message });
-});
+  worker.on("failed", (job, err) => {
+    logger.error(`Notification job ${job?.id} failed`, { err: err.message });
+  });
 
-module.exports = notificationWorker;
+  return worker;
+};
+
+module.exports = { startNotificationWorker };

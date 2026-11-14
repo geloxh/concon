@@ -1,9 +1,23 @@
 const { Queue } = require("bullmq");
-const { redisUrl } = require("../config/env");
+const { createBullConnection } = require("../config/bullmq");
 
-const connection = { url: redisUrl };
+// Queues are created lazily so importing a service never opens a Redis connection
+// (keeps unit tests and scripts clean).
+let notificationQueue = null;
+let mediaQueue = null;
 
-const notificationQueue = new Queue("notifications", { connection });
-const mediaQueue = new Queue("media-processing", { connection });
+function getNotificationQueue() {
+    if (!notificationQueue) notificationQueue = new Queue("notifications", { connection: createBullConnection() });
+    return notificationQueue;
+}
 
-module.exports = { notificationQueue, mediaQueue };
+function getMediaQueue() {
+    if (!mediaQueue) mediaQueue = new Queue("media-processing", {connection: createBullConnection() });
+    return mediaQueue;
+}
+
+async function closeQueues() {
+    await Promise.all([notificationQueue?.close(), mediaQueue.close()]);
+}
+
+module.exports = { getNotificationQueue, getMediaQueue, closeQueues };

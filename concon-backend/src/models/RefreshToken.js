@@ -1,9 +1,8 @@
 const { Schema, model } = require("mongoose");
 
-const refreshTokenSchema = new Schema(
-  {
+const refreshTokenSchema = new Schema ({
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    tokenMash: { type: String, required: true, unique: true }, // sha256, never the raw token
+    token: { type: String, required: true, unique: true }, // SHA-256 hash of the refresh token
     userAgent: String,
     revoked: { type: Boolean, default: false },
     expiresAt: { type: Date, required: true },

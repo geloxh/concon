@@ -5,19 +5,23 @@ function errorMiddleware(err, req, res, next) {
   let error = err;
 
   // Convert known non-ApiError issues into ApiError shape
-  if (error.name === "ValidationError") {
+  if (error.type === "entity.parse.failed") {
+    error = new ApiError(400, "Malformed JSON body");
+  } else if (error.type === "entity.too.large") {
+    error = new ApiError(413, "Request body too large");
+  } else if (error.name === "ValidationError" ) {
     error = new ApiError(400, "Validation failed", error.errors);
   } else if (error.name === "CastError") {
     error = new ApiError(400, `Invalid ${error.path}: ${error.value}`);
   } else if (error.code === 11000) {
-    const field = Object.keys(error.keyValue)[0];
+    const field = Object.keys(error.keyValue || {})[0] || "value";
     error = new ApiError(409, `${field} already exists`);
   } else if (error.name === "JsonWebTokenError") {
     error = new ApiError(401, "Invalid token");
   } else if (error.name === "TokenExpiredError") {
     error = new ApiError(401, "Token expired");
   } else if (!(error instanceof ApiError)) {
-    error = new ApiError(500, "Internal server error");
+    error = new ApieError(500, "Internal server error");
   }
 
   if (error.statusCode >= 500) {
@@ -30,7 +34,7 @@ function errorMiddleware(err, req, res, next) {
     success: false,
     message: error.message,
     ...(error.details && { details: error.details }),
-    ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 }
 

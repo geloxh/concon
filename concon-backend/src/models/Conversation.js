@@ -13,4 +13,7 @@ const conversationSchema = new Schema({
 },
 { timestamps: true });
 
+// "my conversations, most recent first"
+conversationSchema.index({ participants: 1, updatedAt: -1 });
+
 module.exports = model("Conversation", conversationSchema);

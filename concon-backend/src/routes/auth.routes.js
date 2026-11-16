@@ -10,6 +10,7 @@ const router = express.Router();
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
 router.post("/refresh", validate(refreshSchema), refresh);
-router.post("/logout", authenticate, logout);
+// Logout works with an expired access token, as long as the refresh token is presented
+router.post("/logout", validate(refreshSchema), logout);
 
 module.exports = router;

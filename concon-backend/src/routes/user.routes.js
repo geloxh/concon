@@ -10,7 +10,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get("/me", getMe);
-router.patch("/me", validate(updateProfile), updateProfile);
+router.patch("/me", validate(updateProfileSchema), updateProfile);
 router.get("/search", validate(searchUsersQuerySchema, "query"), searchUsers);
 router.get("/:id", validate(idParamSchema, "params"), getUserById);
 
